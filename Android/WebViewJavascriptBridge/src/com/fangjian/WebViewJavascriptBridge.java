@@ -1,10 +1,12 @@
 package com.fangjian;
+import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
 import android.webkit.*;
 import android.widget.Toast;
-import com.example.WebViewJavascriptBridgeExample.R;
 import org.json.JSONObject;
+
+import com.example.WebViewJavascriptBridgeExample.R;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,13 +23,13 @@ import java.util.Scanner;
 public class WebViewJavascriptBridge {
 
     WebView mWebView;
-    Context mContext;
+    Activity mContext;
     WVJBHandler _messageHandler;
     Map<String,WVJBHandler> _messageHandlers;
     Map<String,WVJBResponseCallback> _responseCallbacks;
     long _uniqueId;
 
-    public WebViewJavascriptBridge(Context context,WebView webview,WVJBHandler handler) {
+    public WebViewJavascriptBridge(Activity context,WebView webview,WVJBHandler handler) {
         this.mContext=context;
         this.mWebView=webview;
         this._messageHandler=handler;
@@ -141,7 +143,12 @@ public class WebViewJavascriptBridge {
                 handler = _messageHandler;
             }
             try {
-                handler.handle(data, responseCallback);
+                mContext.runOnUiThread(new Runnable(){
+                    @Override
+                    public void run() {
+                        handler.handle(data, responseCallback);
+                    }
+                });
             }catch (Exception exception) {
                 Log.e("test","WebViewJavascriptBridge: WARNING: java handler threw. "+exception.getMessage());
             }
@@ -173,10 +180,16 @@ public class WebViewJavascriptBridge {
     private void _dispatchMessage(Map <String, String> message){
         String messageJSON = new JSONObject(message).toString();
         Log.d("test","sending:"+messageJSON);
-        String javascriptCommand =
-                String.format("javascript:WebViewJavascriptBridge._handleMessageFromJava('%s');",messageJSON);
-        mWebView.loadUrl(javascriptCommand);
+       final  String javascriptCommand =
+                String.format("javascript:WebViewJavascriptBridge._handleMessageFromJava('%s');",doubleEscapeString(messageJSON));   
+        mContext.runOnUiThread(new Runnable(){
+            @Override
+            public void run() {
+                mWebView.loadUrl(javascriptCommand);    
+            }
+        });
     }
+
 
     public  void callHandler(String handlerName) {
         callHandler(handlerName, null, null);
@@ -188,6 +201,25 @@ public class WebViewJavascriptBridge {
 
     public void callHandler(String handlerName,String data,WVJBResponseCallback responseCallback){
         _sendData(data, responseCallback,handlerName);
+    }
+
+    /*
+      * you must escape the char \ and  char ", or you will not recevie a correct json object in 
+      * your javascript which will cause a exception in chrome.
+      *
+      * please check this and you will know why.
+      * http://stackoverflow.com/questions/5569794/escape-nsstring-for-javascript-input
+      * http://www.json.org/
+    */
+    private String doubleEscapeString(String javascript) {
+      String result;
+      result = javascript.replace("\\", "\\\\");
+      result = result.replace("\"", "\\\"");
+      result = result.replace("\'", "\\\'");
+      result = result.replace("\n", "\\n");
+      result = result.replace("\r", "\\r");
+      result = result.replace("\f", "\\f");
+     return result;
     }
 
 }

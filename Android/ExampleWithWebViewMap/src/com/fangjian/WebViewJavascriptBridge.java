@@ -143,7 +143,12 @@ public class WebViewJavascriptBridge {
                 handler = _messageHandler;
             }
             try {
-                handler.handle(data, responseCallback);
+                mContext.runOnUiThread(new Runnable(){
+                    @Override
+                    public void run() {
+                        handler.handle(data, responseCallback);
+                    }
+                });
             }catch (Exception exception) {
                 Log.e("test","WebViewJavascriptBridge: WARNING: java handler threw. "+exception.getMessage());
             }
@@ -176,12 +181,12 @@ public class WebViewJavascriptBridge {
         String messageJSON = new JSONObject(message).toString();
         Log.d("test","sending:"+messageJSON);
        final  String javascriptCommand =
-                String.format("javascript:WebViewJavascriptBridge._handleMessageFromJava('%s');",messageJSON);   
+                String.format("javascript:WebViewJavascriptBridge._handleMessageFromJava('%s');",doubleEscapeString(messageJSON));   
         mContext.runOnUiThread(new Runnable(){
-			@Override
-			public void run() {
-				mWebView.loadUrl(javascriptCommand);	
-			}
+            @Override
+            public void run() {
+                mWebView.loadUrl(javascriptCommand);    
+            }
         });
     }
 
@@ -196,6 +201,25 @@ public class WebViewJavascriptBridge {
 
     public void callHandler(String handlerName,String data,WVJBResponseCallback responseCallback){
         _sendData(data, responseCallback,handlerName);
+    }
+
+    /*
+      * you must escape the char \ and  char ", or you will not recevie a correct json object in 
+      * your javascript which will cause a exception in chrome.
+      *
+      * please check this and you will know why.
+      * http://stackoverflow.com/questions/5569794/escape-nsstring-for-javascript-input
+      * http://www.json.org/
+    */
+    private String doubleEscapeString(String javascript) {
+      String result;
+      result = javascript.replace("\\", "\\\\");
+      result = result.replace("\"", "\\\"");
+      result = result.replace("\'", "\\\'");
+      result = result.replace("\n", "\\n");
+      result = result.replace("\r", "\\r");
+      result = result.replace("\f", "\\f");
+     return result;
     }
 
 }
