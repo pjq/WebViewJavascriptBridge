@@ -80,6 +80,10 @@ public class WebViewJavascriptBridge {
 
         @Override
         public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+            // if don't cancel the alert, webview after onJsAlert not responding taps
+            // you can check this :
+            // http://stackoverflow.com/questions/15892644/android-webview-after-onjsalert-not-responding-taps
+            result.cancel();
             Toast.makeText(mContext, message, Toast.LENGTH_SHORT).show();
             return true;
         }
