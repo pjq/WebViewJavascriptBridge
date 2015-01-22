@@ -16,11 +16,13 @@ import java.util.Scanner;
 
 /**
  * Created with IntelliJ IDEA.
+ * implements Serializable in case of javascript interface will be removed in obfuscated code.
+ * 
  * User: jack_fang
  * Date: 13-8-15
  * Time: 下午6:08
  */
-public class WebViewJavascriptBridge {
+public class WebViewJavascriptBridge implements Serializable {
 
     WebView mWebView;
     Activity mContext;
