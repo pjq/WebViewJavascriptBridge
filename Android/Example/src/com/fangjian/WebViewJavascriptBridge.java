@@ -84,6 +84,10 @@ public class WebViewJavascriptBridge implements Serializable {
 
         @Override
         public boolean onJsAlert(WebView view, String url, String message, JsResult result) {
+            // if don't cancel the alert, webview after onJsAlert not responding taps
+            // you can check this :
+            // http://stackoverflow.com/questions/15892644/android-webview-after-onjsalert-not-responding-taps
+            result.cancel();
             Toast.makeText(mContext, message, Toast.LENGTH_SHORT).show();
             return true;
         }
@@ -145,7 +149,12 @@ public class WebViewJavascriptBridge implements Serializable {
                 handler = _messageHandler;
             }
             try {
-                handler.handle(data, responseCallback);
+                mContext.runOnUiThread(new Runnable(){
+                    @Override
+                    public void run() {
+                        handler.handle(data, responseCallback);
+                    }
+                });
             }catch (Exception exception) {
                 Log.e("test","WebViewJavascriptBridge: WARNING: java handler threw. "+exception.getMessage());
             }
@@ -178,7 +187,7 @@ public class WebViewJavascriptBridge implements Serializable {
         String messageJSON = new JSONObject(message).toString();
         Log.d("test","sending:"+messageJSON);
        final  String javascriptCommand =
-                String.format("javascript:WebViewJavascriptBridge._handleMessageFromJava('%s');",messageJSON);   
+                String.format("javascript:WebViewJavascriptBridge._handleMessageFromJava('%s');",doubleEscapeString(messageJSON));   
         mContext.runOnUiThread(new Runnable(){
 			@Override
 			public void run() {
@@ -198,6 +207,25 @@ public class WebViewJavascriptBridge implements Serializable {
 
     public void callHandler(String handlerName,String data,WVJBResponseCallback responseCallback){
         _sendData(data, responseCallback,handlerName);
+    }
+
+    /*
+      * you must escape the char \ and  char ", or you will not recevie a correct json object in 
+      * your javascript which will cause a exception in chrome.
+      *
+      * please check this and you will know why.
+      * http://stackoverflow.com/questions/5569794/escape-nsstring-for-javascript-input
+      * http://www.json.org/
+    */
+    private String doubleEscapeString(String javascript) {
+      String result;
+      result = javascript.replace("\\", "\\\\");
+      result = result.replace("\"", "\\\"");
+      result = result.replace("\'", "\\\'");
+      result = result.replace("\n", "\\n");
+      result = result.replace("\r", "\\r");
+      result = result.replace("\f", "\\f");
+     return result;
     }
 
 }
