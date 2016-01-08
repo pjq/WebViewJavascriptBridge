@@ -127,7 +127,7 @@ public class WebViewJavascriptBridge implements Serializable {
     }
 
     @JavascriptInterface
-    public void _handleMessageFromJs(String data,String responseId,
+    public void _handleMessageFromJs(final String data,String responseId,
                                      String responseData,String callbackId,String handlerName){
         if (null!=responseId) {
             WVJBResponseCallback responseCallback = _responseCallbacks.get(responseId);
@@ -138,7 +138,7 @@ public class WebViewJavascriptBridge implements Serializable {
             if (null!=callbackId) {
                 responseCallback=new CallbackJs(callbackId);
             }
-            WVJBHandler handler;
+            final WVJBHandler handler;
             if (null!=handlerName) {
                 handler = _messageHandlers.get(handlerName);
                 if (null==handler) {
@@ -149,10 +149,11 @@ public class WebViewJavascriptBridge implements Serializable {
                 handler = _messageHandler;
             }
             try {
+                final WVJBResponseCallback finalResponseCallback = responseCallback;
                 mContext.runOnUiThread(new Runnable(){
                     @Override
                     public void run() {
-                        handler.handle(data, responseCallback);
+                        handler.handle(data, finalResponseCallback);
                     }
                 });
             }catch (Exception exception) {
